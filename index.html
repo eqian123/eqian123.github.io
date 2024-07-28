@@ -29,7 +29,7 @@
     }
 
     .bar {
-      fill: steelblue;
+      fill: #ff6600;
     }
 
     .line {
@@ -69,20 +69,16 @@
 </head>
 <body>
   <div id="charts-container">
-    <div id="na-chart" class="chart">
-      <h3 class="chart-title">Top Game Sales by Genre in NA</h3>
+    <div id="rating-chart" class="chart">
+      <h3 class="chart-title">Average Ratings of Indian Cuisines</h3>
       <svg width="1000" height="600"></svg>
     </div>
-    <div id="eu-chart" class="chart">
-      <h3 class="chart-title">Top Game Sales by Genre in EU</h3>
+    <div id="review-chart" class="chart">
+      <h3 class="chart-title">Number of Reviews for Indian Cuisines</h3>
       <svg width="1000" height="600"></svg>
     </div>
-    <div id="jp-chart" class="chart">
-      <h3 class="chart-title">Top Game Sales by Genre in JP</h3>
-      <svg width="1000" height="600"></svg>
-    </div>
-    <div id="global-chart" class="chart">
-      <h3 class="chart-title">Global Sales Over Time by Genre</h3>
+    <div id="price-chart" class="chart">
+      <h3 class="chart-title">Average Price Range of Indian Cuisines</h3>
       <svg width="1000" height="600"></svg>
     </div>
   </div>
@@ -93,29 +89,29 @@
     const width = 1000 - margin.left - margin.right;
     const height = 600 - margin.top - margin.bottom;
 
-    function createBarChart(container, salesData, region, title) {
+    function createBarChart(container, data, metric, title) {
       const svg = d3.select(container).select("svg")
         .append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
-      const genreData = d3.nest()
-        .key(d => d.Genre)
-        .rollup(values => d3.sum(values, d => d[`${region}_Sales`]))
-        .entries(salesData)
+      const cuisineData = d3.nest()
+        .key(d => d.Cuisine)
+        .rollup(values => d3.mean(values, d => d[metric]))
+        .entries(data)
         .sort((a, b) => d3.descending(a.value, b.value));
 
       const xScale = d3.scaleBand()
         .range([0, width])
         .padding(0.1)
-        .domain(genreData.map(d => d.key));
+        .domain(cuisineData.map(d => d.key));
 
       const yScale = d3.scaleLinear()
         .range([height, 0])
-        .domain([0, d3.max(genreData, d => d.value)]);
+        .domain([0, d3.max(cuisineData, d => d.value)]);
 
       svg.append("g")
         .selectAll(".bar")
-        .data(genreData)
+        .data(cuisineData)
         .enter()
         .append("rect")
         .attr("class", "bar")
@@ -140,115 +136,29 @@
         .attr("x", width / 2)
         .attr("y", height + margin.bottom - 60)
         .style("text-anchor", "middle")
-        .text("Genre");
+        .text("Cuisine");
 
       svg.append("text")
         .attr("transform", "rotate(-90)")
         .attr("x", -height / 2)
         .attr("y", -margin.left + 20)
         .style("text-anchor", "middle")
-        .text(`${region} Sales (millions)`);
-    }
-
-    function createLineChart(container, salesData) {
-      const svg = d3.select(container).select("svg")
-        .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
-
-      const genres = ["Action", "Adventure", "Fighting", "Misc", "Platform", "Puzzle", "Racing", "Role-Playing", "Shooter", "Simulation", "Sports", "Strategy"];
-      const genreColors = d3.scaleOrdinal(d3.schemeCategory10).domain(genres);
-
-      const genreData = d3.nest()
-        .key(d => d.Genre)
-        .key(d => d.Year)
-        .rollup(values => d3.sum(values, d => d.Global_Sales))
-        .entries(salesData);
-
-      const xScale = d3.scaleLinear()
-        .domain(d3.extent(salesData, d => +d.Year))
-        .range([0, width]);
-
-      const yScale = d3.scaleLinear()
-        .range([height, 0])
-        .domain([0, d3.max(genreData, g => d3.max(g.values, d => d.value))]);
-
-      const line = d3.line()
-        .x(d => xScale(+d.key))
-        .y(d => yScale(d.value));
-
-      genres.forEach(genre => {
-        const data = genreData.find(d => d.key === genre);
-        if (data) {
-          svg.append("path")
-            .datum(data.values)
-            .attr("class", "line")
-            .attr("fill", "none")
-            .attr("stroke", genreColors(genre))
-            .attr("stroke-width", 2)
-            .attr("d", line);
-        }
-      });
-
-      svg.append("g")
-        .attr("class", "axis")
-        .attr("transform", `translate(0,${height})`)
-        .call(d3.axisBottom(xScale).tickFormat(d3.format("d")));
-
-      svg.append("g")
-        .attr("class", "axis")
-        .call(d3.axisLeft(yScale));
-
-      svg.append("text")
-        .attr("x", width / 2)
-        .attr("y", height + margin.bottom - 60)
-        .style("text-anchor", "middle")
-        .text("Year");
-
-      svg.append("text")
-        .attr("transform", "rotate(-90)")
-        .attr("x", -height / 2)
-        .attr("y", -margin.left + 20)
-        .style("text-anchor", "middle")
-        .text("Global Sales (millions)");
-
-      // Add legend
-      const legend = svg.selectAll(".legend")
-        .data(genres)
-        .enter()
-        .append("g")
-        .attr("class", "legend")
-        .attr("transform", (d, i) => `translate(${i * 120}, ${height + margin.bottom - 40})`);
-
-      legend.append("rect")
-        .attr("x", 0)
-        .attr("width", 10)
-        .attr("height", 10)
-        .style("fill", genreColors);
-
-      legend.append("text")
-        .attr("x", 15)
-        .attr("y", 9)
-        .text(d => d);
+        .text(`${metric} (average)`);
     }
 
     // Load data from the CSV file
-    d3.csv("https://raw.githubusercontent.com/eslqian/eslqian.github.io/main/data/vgsales.csv").then(function(data) {
+    d3.csv("path-to-your-yelp-data.csv").then(function(data) {
       // Convert numeric values from strings to numbers
       data.forEach(d => {
-        d.Year = +d.Year;
-        d.NA_Sales = +d.NA_Sales;
-        d.EU_Sales = +d.EU_Sales;
-        d.JP_Sales = +d.JP_Sales;
-        d.Global_Sales = +d.Global_Sales;
+        d.Rating = +d.Rating;
+        d.ReviewCount = +d.ReviewCount;
+        d.PriceRange = +d.PriceRange;
       });
 
-      // Create bar charts for each region by genre
-      createBarChart("#na-chart", data, "NA", "Top Game Sales by Genre in NA");
-      createBarChart("#eu-chart", data, "EU", "Top Game Sales by Genre in EU");
-      createBarChart("#jp-chart", data, "JP", "Top Game Sales by Genre in JP");
-
-      // Create global sales line chart
-      createLineChart("#global-chart", data);
+      // Create bar charts for different metrics
+      createBarChart("#rating-chart", data, "Rating", "Average Ratings of Indian Cuisines");
+      createBarChart("#review-chart", data, "ReviewCount", "Number of Reviews for Indian Cuisines");
+      createBarChart("#price-chart", data, "PriceRange", "Average Price Range of Indian Cuisines");
     });
   </script>
 </body>
