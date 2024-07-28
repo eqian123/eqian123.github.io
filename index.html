@@ -147,7 +147,7 @@
     }
 
     // Load data from the CSV file
-    d3.csv("path-to-your-yelp-data.csv").then(function(data) {
+    d3.csv("https://raw.githubusercontent.com/eslqian/eslqian.github.io/main/data/vgsales.csv").then(function(data) {
       // Convert numeric values from strings to numbers
       data.forEach(d => {
         d.Rating = +d.Rating;
